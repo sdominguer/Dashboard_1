@@ -2,140 +2,131 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 1. Configuración de página
-st.set_page_config(page_title="Agro Earth Mood", layout="wide", page_icon="🌿")
+# 1. Configuración de la página (Fondo blanco por defecto)
+st.set_page_config(page_title="Agro Premium Dashboard", layout="wide", page_icon="🌱")
 
-# --- PALETA TIERRA (EARTH TONES) ---
-# Cafés, ocres, verdes bosque y arcilla
-EARTH_PALETTE = ["#8B4513", "#A0522D", "#556B2F", "#D2B48C", "#BC8F8F", "#CD853F"]
+# --- PALETA TIERRA SELECCIONADA ---
+EARTH_COLORS = ["#4F6F52", "#739072", "#86A789", "#D2B48C", "#A98467", "#606C38"]
 
-# --- ESTILO DARK CON LETRA BLANCA ---
+# --- ESTILO LIMPIO Y PROFESIONAL ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: #FFFFFF; }
-    h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown { color: #FFFFFF !important; }
-    [data-testid="stMetricValue"] { color: #D2B48C !important; } /* Color Tan para números */
-    [data-testid="stMetricLabel"] { color: #FFFFFF !important; }
+    /* Forzar fondo blanco y letras oscuras */
+    .stApp { background-color: #FFFFFF; color: #2D2D2D; }
+    
+    /* Estilo para las métricas (Tarjetas) */
     div[data-testid="metric-container"] {
-        background-color: #1E2130;
-        border: 1px solid #556B2F;
-        border-radius: 15px;
+        background-color: #F8F9F3;
+        border: 1px solid #E6E6E1;
+        border-left: 5px solid #4F6F52; /* Borde verde tierra */
+        padding: 20px;
+        border-radius: 10px;
     }
-    .stSlider > div > div > div > div { color: #CD853F; } /* Slider color tierra */
+    
+    /* Ajuste de Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #F8F9F3;
+        border-radius: 5px 5px 0px 0px;
+        padding: 10px 20px;
+        color: #4F6F52;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🍂 Agro-Intelligence: Mood Tierra")
+# Título con estilo
+st.title("🍃 Sistema de Inteligencia Agrícola")
+st.markdown("---")
 
-# --- SIDEBAR INTERACTIVO ---
-st.sidebar.header("🪵 Herramientas de Campo")
-uploaded_file = st.sidebar.file_uploader("Sube tu cosecha de datos (CSV)", type=["csv"])
+# --- SIDEBAR (PANEL DE CONTROL) ---
+with st.sidebar:
+    st.image("https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=1000")
+    st.header("⚙️ Configuración")
+    uploaded_file = st.file_uploader("Sube tu archivo CSV", type=["csv"])
+    
+    if uploaded_file:
+        st.success("Archivo cargado")
+        # Slider de simulador (0-1000)
+        eficiencia = st.slider("Simulador de Eficiencia (%)", 0, 1000, 100)
+        # Filtro de Departamento
+        df_temp = pd.read_csv(uploaded_file)
+        depts = st.multiselect("Filtrar Departamentos", df_temp["Departamento"].unique())
 
-if uploaded_file is not None:
-    st.sidebar.success("¡Datos cargados con éxito!")
+if uploaded_file:
     df = pd.read_csv(uploaded_file)
     df['Fecha_Ultima_Auditoria'] = pd.to_datetime(df['Fecha_Ultima_Auditoria'])
-
-    # --- NUEVAS COSAS INTERACTIVAS ---
     
-    # 1. El slider de 0 a 1000 que pediste (Simulador de productividad)
-    st.sidebar.subheader("📈 Simulador")
-    meta_produccion = st.sidebar.slider("Ajustar Meta de Rendimiento (0-1000)", 0, 1000, 500)
-    
-    # 2. Búsqueda por palabra clave en el tipo de suelo
-    suelo_busqueda = st.sidebar.selectbox("Filtrar por tipo de suelo:", ["Todos"] + list(df["Tipo_Suelo"].unique()))
+    # Aplicar filtros si existen
+    if depts:
+        df = df[df["Departamento"].isin(depts)]
 
-    # 3. Color Picker para el acento de los bordes
-    color_finca = st.sidebar.color_picker("Color de marcador", "#556B2F")
+    # --- PESTAÑAS PRINCIPALES ---
+    tab1, tab2, tab3 = st.tabs(["📊 VISTA GENERAL", "🧐 DETALLE CUALITATIVO", "🎨 ANÁLISIS VISUAL"])
 
-    # --- LÓGICA DE FILTRADO ---
-    df_f = df.copy()
-    if suelo_busqueda != "Todos":
-        df_f = df_f[df_f["Tipo_Suelo"] == suelo_busqueda]
-
-    # --- PESTAÑAS ---
-    tab_cuant, tab_cual, tab_graf = st.tabs(["🔢 CUANTITATIVO", "📄 CUALITATIVO", "📊 GRÁFICO"])
-
-    # BLOQUE 1: CUANTITATIVO
-    with tab_cuant:
-        st.subheader("Análisis de Cosecha")
-        c1, c2, c3 = st.columns(3)
+    # --- TAB 1: CUANTITATIVO ---
+    with tab1:
+        st.subheader("Indicadores de Producción")
+        c1, c2, c3, c4 = st.columns(4)
         
-        produccion_real = df_f['Produccion_Anual_Ton'].sum()
-        # Usamos el slider para un cálculo dinámico "bacano"
-        rendimiento_simulado = (produccion_real * meta_produccion) / 500
+        prod_total = df["Produccion_Anual_Ton"].sum()
+        # Aplicamos el simulador del slider
+        prod_simulada = prod_total * (eficiencia / 100)
 
-        c1.metric("Producción Real", f"{produccion_real:,.0f} Ton")
-        c2.metric("Simulación Meta", f"{rendimiento_simulado:,.0f} Ton", delta=f"{meta_produccion - 500} pts")
-        c3.metric("Fincas Analizadas", len(df_f))
+        c1.metric("Producción Total", f"{prod_total:,.0f} T")
+        c2.metric("Proyección (Slider)", f"{prod_simulada:,.0f} T", delta=f"{eficiencia}%")
+        c3.metric("Área Cultivada", f"{df['Area_Hectareas'].sum():,.0f} Ha")
+        c4.metric("Precio Promedio", f"${df['Precio_Venta_Por_Ton_COP'].mean():,.0f}")
 
-        st.write("### 🪵 Estadísticas de Suelos")
-        st.dataframe(df_f.groupby("Tipo_Suelo").agg({
-            "Area_Hectareas": "sum",
-            "Precio_Venta_Por_Ton_COP": "mean"
-        }).style.background_gradient(cmap='YlOrBr'))
+        st.markdown("### Rendimiento por Tipo de Suelo")
+        resumen_suelo = df.groupby("Tipo_Suelo").agg({"Produccion_Anual_Ton": "sum", "Area_Hectareas": "mean"})
+        st.dataframe(resumen_suelo.style.background_gradient(cmap='YlGn'), use_container_width=True)
 
-    # BLOQUE 2: CUALITATIVO
-    with tab_cual:
-        st.subheader("Gestión y Auditoría")
+    # --- TAB 2: CUALITATIVO ---
+    with tab2:
+        st.subheader("Análisis de Calidad y Gestión")
         
-        with st.expander("🛠️ Opciones Avanzadas de Visualización"):
-            st.write("Aquí puedes ver el detalle de tecnificación por cada finca.")
-            mostrar_todo = st.checkbox("Mostrar toda la tabla")
+        col_a, col_b = st.columns([1, 2])
         
-        if mostrar_todo:
-            st.dataframe(df_f, use_container_width=True)
-        else:
-            st.dataframe(df_f.head(10), use_container_width=True)
+        with col_a:
+            st.write("**Nivel de Tecnificación**")
+            # Un gráfico de barras horizontal pequeño y limpio
+            tec_count = df["Nivel_Tecnificacion"].value_counts()
+            st.bar_chart(tec_count, color="#A98467")
+            
+            st.write("**Sistemas de Riego**")
+            st.info(f"Fincas con Riego: {len(df[df['Sistema_Riego_Tecnificado']==True])}")
 
-        st.write("**Resumen de Riego:**")
-        st.progress(len(df_f[df_f['Sistema_Riego_Tecnificado'] == True]) / len(df_f))
-        st.caption("Porcentaje de fincas con riego tecnificado")
+        with col_b:
+            st.write("**Buscador Global de Fincas**")
+            st.dataframe(df[["ID_Finca", "Departamento", "Tipo_Cultivo", "Tipo_Suelo"]], height=400)
 
-    # BLOQUE 3: GRÁFICO (Mood Tierra)
-    with tab_graf:
-        st.subheader("Visualización en Tonos Tierra")
+    # --- TAB 3: GRÁFICO (MOOD TIERRA) ---
+    with tab3:
+        st.subheader("Visualización del Campo")
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Treemap: Estructura de cultivos
-            fig_tree = px.treemap(
-                df_f, path=['Departamento', 'Tipo_Cultivo'], values='Produccion_Anual_Ton',
-                title="Jerarquía de Producción",
-                color_discrete_sequence=EARTH_PALETTE,
-                template="plotly_dark"
-            )
-            st.plotly_chart(fig_tree, use_container_width=True)
-
-        with col2:
-            # Boxplot con colores tierra
-            fig_box = px.box(
-                df_f, x="Tipo_Cultivo", y="Precio_Venta_Por_Ton_COP",
-                title="Variación de Precios",
-                color_discrete_sequence=[EARTH_PALETTE[1]],
-                template="plotly_dark"
-            )
-            st.plotly_chart(fig_box, use_container_width=True)
-
-        # Gráfico de burbujas personalizado
-        fig_bubble = px.scatter(
-            df_f, x="Area_Hectareas", y="Produccion_Anual_Ton",
-            size="Precio_Venta_Por_Ton_COP", color="Tipo_Suelo",
-            hover_name="ID_Finca",
-            title="Relación Área vs Producción (Burbujas por Suelo)",
-            color_discrete_sequence=EARTH_PALETTE,
-            template="plotly_dark"
+        # 1. Gráfico de Áreas (Sunburst)
+        fig_sun = px.sunburst(
+            df, path=['Departamento', 'Tipo_Cultivo'], values='Produccion_Anual_Ton',
+            color_discrete_sequence=EARTH_COLORS,
+            template="plotly_white"
         )
-        st.plotly_chart(fig_bubble, use_container_width=True)
+        st.plotly_chart(fig_sun, use_container_width=True)
+
+        st.markdown("---")
+        
+        # 2. Relación de Precios y Área
+        fig_scatter = px.scatter(
+            df, x="Area_Hectareas", y="Produccion_Anual_Ton",
+            size="Precio_Venta_Por_Ton_COP", color="Tipo_Cultivo",
+            color_discrete_sequence=EARTH_COLORS,
+            title="Eficiencia por Cultivo (Tamaño = Precio)",
+            template="plotly_white"
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+        # Botón para descargar lo que filtró
+        st.download_button("📥 Descargar Reporte Final", df.to_csv(), "reporte_agro.csv")
 
 else:
-    # BIENVENIDA
-    st.info("🚜 ¡Listo para la cosecha! Sube tu CSV para empezar.")
-    st.image(
-        "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=1000", 
-        caption="Mood Agro - Análisis de Datos"
-    )
-    
-    if st.button("Lanzar Globos de Bienvenida"):
-        st.balloons()
+    st.info("👋 Por favor, sube el archivo 'agro_colombia.csv' en la barra lateral para generar la magia.")
+    st.image("https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=1000", caption="El futuro del campo colombiano")
