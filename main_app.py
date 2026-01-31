@@ -32,17 +32,36 @@ st.markdown("""
     
     /* Tarjetas de Métricas (KPIs) */
     div[data-testid="metric-container"] {
-        background-color: #F9FBF9; /* Blanco Hueso muy sutil */
+        background-color: #F9FBF9; 
         border: 1px solid #E0E4D9;
-        border-left: 5px solid #556B2F; /* Borde verde tierra */
+        border-left: 5px solid #556B2F; 
         padding: 15px;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* Tabs limpias */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { color: #5D4037; font-weight: 600; }
+    /* --- TABS GRANDES Y BLANCOS --- */
+    /* Contenedor de la lista de tabs con fondo verde tierra */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 15px;
+        background-color: #556B2F; /* Fondo verde para que resalte la letra blanca */
+        padding: 8px 15px;
+        border-radius: 12px 12px 0 0;
+    }
+
+    /* Estilo de la letra en los tabs (Normal y Seleccionado) */
+    .stTabs [data-baseweb="tab"] p {
+        color: white !important;
+        font-size: 22px !important; /* Letra más grande */
+        font-weight: 700 !important;
+        transition: all 0.3s;
+    }
+
+    /* Efecto cuando el tab está seleccionado */
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(255, 255, 255, 0.2) !important; /* Brillo sutil */
+        border-radius: 8px 8px 0 0 !important;
+    }
     
     /* Botones */
     .stButton > button {
