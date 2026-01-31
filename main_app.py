@@ -2,119 +2,125 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Configuración estética de la página
-st.set_page_config(page_title="Agro Dashboard Pastel", layout="wide")
+# Configuración básica
+st.set_page_config(page_title="Agro Dashboard Colombia", layout="wide")
 
-# Colores Pastel Personalizados
-PASTEL_COLORS = ["#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#F3B0C3"]
+# Título principal
+st.title("🚜 Dashboard de Análisis Agropecuario")
 
-# Estilo CSS para mejorar la apariencia (opcional)
-st.markdown("""
-    <style>
-    .stMetric { background-color: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee; }
-    </style>
-    """, unsafe_allow_html=True)
+# --- CARGA DE DATOS ---
+st.sidebar.header("1. Configuración de Datos")
+uploaded_file = st.sidebar.file_uploader("Sube tu archivo agro_colombia.csv", type=["csv"])
 
-st.title("🌱 Dashboard de Análisis Agropecuario")
-
-# --- BLOQUE DE CARGA DE DATOS ---
-uploaded_file = st.sidebar.file_uploader("Sube tu archivo CSV", type=["csv"])
-
-if uploaded_file:
+if uploaded_file is not None:
+    # Cargar DF
     df = pd.read_csv(uploaded_file)
     
-    # Limpieza básica
+    # Pre-procesamiento de fechas
     if 'Fecha_Ultima_Auditoria' in df.columns:
         df['Fecha_Ultima_Auditoria'] = pd.to_datetime(df['Fecha_Ultima_Auditoria'])
 
-    # --- FILTROS DINÁMICOS (Modifican todos los bloques) ---
-    st.sidebar.header("Configuración Dinámica")
+    # --- FILTROS DINÁMICOS EN SIDEBAR ---
+    st.sidebar.header("2. Filtros Dinámicos")
     
-    dept_list = df["Departamento"].unique().tolist()
-    selected_depts = st.sidebar.multiselect("Filtrar por Departamento", dept_list, default=dept_list[:3])
+    # Filtro Departamento
+    dept_list = sorted(df["Departamento"].unique())
+    selected_depts = st.sidebar.multiselect("Selecciona Departamentos:", dept_list, default=dept_list)
 
-    crop_list = df["Tipo_Cultivo"].unique().tolist()
-    selected_crops = st.sidebar.multiselect("Filtrar por Cultivo", crop_list, default=crop_list)
+    # Filtro Cultivo
+    crop_list = sorted(df["Tipo_Cultivo"].unique())
+    selected_crops = st.sidebar.multiselect("Selecciona Cultivos:", crop_list, default=crop_list)
 
-    # DataFrame Filtrado
-    df_filtered = df[df["Departamento"].isin(selected_depts) & df["Tipo_Cultivo"].isin(selected_crops)]
+    # Aplicar Filtros
+    df_selection = df[df["Departamento"].isin(selected_depts) & df["Tipo_Cultivo"].isin(selected_crops)]
 
     # --- ESTRUCTURA DE 3 BLOQUES ---
-    tab_cuant, tab_cual, tab_graf = st.tabs(["🔢 Cuantitativo", "📄 Cualitativo", "📊 Gráfico"])
+    tab_cuant, tab_cual, tab_graf = st.tabs(["🔢 CUANTITATIVO", "📄 CUALITATIVO", "📊 GRÁFICO"])
 
     # --- BLOQUE 1: CUANTITATIVO ---
     with tab_cuant:
-        st.subheader("Indicadores Numéricos Clave")
-        c1, c2, c3, c4 = st.columns(4)
+        st.header("Indicadores Numéricos Clave")
         
-        with c1:
-            st.metric("Total Área (Ha)", f"{df_filtered['Area_Hectareas'].sum():,.0f}")
-        with c2:
-            st.metric("Producción (Ton)", f"{df_filtered['Produccion_Anual_Ton'].sum():,.0f}")
-        with c3:
-            st.metric("Precio Promedio", f"${df_filtered['Precio_Venta_Por_Ton_COP'].mean():,.0f}")
-        with c4:
-            st.metric("Rendimiento Prom.", f"{(df_filtered['Produccion_Anual_Ton']/df_filtered['Area_Hectareas']).mean():,.2f} T/Ha")
+        # Usamos columnas estándar para asegurar visibilidad
+        col1, col2, col3 = st.columns(3)
         
-        st.write("### Resumen Estadístico")
-        st.dataframe(df_filtered.describe().T.style.background_gradient(cmap='Pastel1'))
+        area_total = df_selection['Area_Hectareas'].sum()
+        prod_total = df_selection['Produccion_Anual_Ton'].sum()
+        precio_prom = df_selection['Precio_Venta_Por_Ton_COP'].mean()
+
+        col1.metric("Área Total (Ha)", f"{area_total:,.1f}")
+        col2.metric("Producción Total (Ton)", f"{prod_total:,.1f}")
+        col3.metric("Precio Promedio (COP)", f"${precio_prom:,.0f}")
+
+        st.markdown("---")
+        st.subheader("Resumen Estadístico")
+        st.dataframe(df_selection.describe(), use_container_width=True)
 
     # --- BLOQUE 2: CUALITATIVO ---
     with tab_cual:
-        st.subheader("Análisis de Categorías y Detalles")
+        st.header("Análisis de Categorías")
         
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.write("**Distribución por Nivel de Tecnificación**")
-            tec_counts = df_filtered["Nivel_Tecnificacion"].value_counts().reset_index()
-            st.table(tec_counts)
+        c1, c2 = st.columns(2)
         
-        with col_b:
-            st.write("**Tipos de Suelo Predominantes**")
-            suelo_counts = df_filtered["Tipo_Suelo"].value_counts().reset_index()
-            st.table(suelo_counts)
+        with c1:
+            st.subheader("Nivel de Tecnificación")
+            # Conteo simple para ver la calidad del agro
+            tec_df = df_selection["Nivel_Tecnificacion"].value_counts().reset_index()
+            tec_df.columns = ["Nivel", "Cantidad de Fincas"]
+            st.table(tec_df)
 
-        st.write("### Datos Detallados (Filtrados)")
-        st.dataframe(df_filtered)
+        with c2:
+            st.subheader("Tipos de Suelo")
+            suelo_df = df_selection["Tipo_Suelo"].value_counts().reset_index()
+            suelo_df.columns = ["Suelo", "Cantidad"]
+            st.table(suelo_df)
+
+        st.subheader("Explorador de Datos Crudos")
+        st.dataframe(df_selection, use_container_width=True)
 
     # --- BLOQUE 3: GRÁFICO ---
     with tab_graf:
-        st.subheader("Visualización de Tendencias")
+        st.header("Visualización de Tendencias")
         
-        g1, g2 = st.columns(2)
+        # Gráfico de Barras - Producción por Departamento (Colores originales de Plotly)
+        fig_bar = px.bar(
+            df_selection.groupby("Departamento")["Produccion_Anual_Ton"].sum().reset_index(),
+            x="Departamento", 
+            y="Produccion_Anual_Ton",
+            title="Producción Total por Departamento",
+            color="Departamento",
+            template="plotly_white"
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
 
-        with g1:
-            # Gráfico de barras pastel
-            fig_bar = px.bar(
-                df_filtered.groupby("Tipo_Cultivo")["Produccion_Anual_Ton"].sum().reset_index(),
-                x="Tipo_Cultivo", y="Produccion_Anual_Ton",
-                title="Producción por Cultivo",
-                color_discrete_sequence=[PASTEL_COLORS[0]]
-            )
-            fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_bar, use_container_width=True)
+        col_g1, col_g2 = st.columns(2)
 
-        with g2:
-            # Gráfico de Torta pastel
+        with col_g1:
+            # Gráfico de Torta - Cultivos
             fig_pie = px.pie(
-                df_filtered, names="Tipo_Suelo", 
-                title="Distribución de Suelos",
-                color_discrete_sequence=PASTEL_COLORS
+                df_selection, 
+                names="Tipo_Cultivo", 
+                values="Produccion_Anual_Ton",
+                title="Participación por Cultivo",
+                hole=0.3
             )
             st.plotly_chart(fig_pie, use_container_width=True)
 
-        # Gráfico de Dispersión
-        fig_scatter = px.scatter(
-            df_filtered, x="Area_Hectareas", y="Produccion_Anual_Ton",
-            color="Nivel_Tecnificacion",
-            size="Precio_Venta_Por_Ton_COP",
-            title="Relación Área vs Producción (Tamaño por Precio)",
-            color_discrete_sequence=PASTEL_COLORS,
-            template="plotly_white"
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
+        with col_g2:
+            # Scatter Plot - Área vs Producción
+            fig_scatter = px.scatter(
+                df_selection,
+                x="Area_Hectareas",
+                y="Produccion_Anual_Ton",
+                color="Nivel_Tecnificacion",
+                size="Precio_Venta_Por_Ton_COP",
+                title="Área vs Producción (Tamaño por Precio)",
+                template="ggplot2" # Un estilo clásico y legible
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
 
 else:
-    st.info("👋 ¡Bienvenido! Por favor carga un archivo CSV en la barra lateral para generar el reporte.")
-    # Imagen placeholder con tonos suaves
-    st.image("https://images.unsplash.com/photo-1495107336281-19d4f7a7d0bf?auto=format&fit=crop&q=80&w=1000", caption="Análisis de datos agrícolas")
+    # Pantalla de bienvenida si no hay archivo
+    st.warning("⚠️ Esperando archivo CSV...")
+    st.info("Por favor, sube el archivo 'agro_colombia.csv' desde la barra lateral izquierda.")
+    st.image("https://www.agrifuturo.com/wp-content/uploads/2021/05/agronomo-scaled.jpg", caption="Dashboard Agro Industrial")
