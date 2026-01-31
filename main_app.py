@@ -1,125 +1,159 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+import plotly.graph_objects as go
 
-# Configuración de página
-st.set_page_config(page_title="Agro-Interactive Pro", layout="wide", page_icon="🌾")
+# 1. Configuración de página y Tema Oscuro Forzado
+st.set_page_config(page_title="Agro Dark Pro", layout="wide", page_icon="🌑")
 
-# --- ESTILO PARA ASEGURAR VISIBILIDAD ---
+# Inyección de CSS para Fondo Oscuro y Letras Blancas
 st.markdown("""
     <style>
-    .main { background-color: #ffffff; }
-    h1, h2, h3, p { color: #2c3e50 !important; }
-    .stMetric { border: 1px solid #e1e4e8; padding: 10px; border-radius: 10px; background-color: #f8f9fa; }
+    /* Fondo principal y textos */
+    .stApp { background-color: #0E1117; color: #FFFFFF; }
+    h1, h2, h3, h4, h5, h6, p, span, label { color: #FFFFFF !important; }
+    
+    /* Estilo de las métricas */
+    [data-testid="stMetricValue"] { color: #FFFFFF !important; font-size: 1.8rem; }
+    [data-testid="stMetricLabel"] { color: #B0B0B0 !important; }
+    div[data-testid="metric-container"] {
+        background-color: #1E2130;
+        border: 1px solid #3E4255;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    /* Tablas y Dataframes */
+    .stDataFrame { background-color: #1E2130; }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] { background-color: #161B22; border-right: 1px solid #30363D; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🚜 Dashboard Agro-Interactivo Profesional")
+st.title("🌑 Agro-Intelligence: Modo Oscuro")
 
-# --- SIDEBAR: CONTROLES BACANOS ---
-st.sidebar.header("🛠️ Panel de Control")
-uploaded_file = st.sidebar.file_uploader("1. Sube tu base de datos (CSV)", type=["csv"])
+# --- SIDEBAR INTERACTIVO ---
+st.sidebar.header("🕹️ Panel de Control")
+uploaded_file = st.sidebar.file_uploader("Sube tu archivo CSV", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df['Fecha_Ultima_Auditoria'] = pd.to_datetime(df['Fecha_Ultima_Auditoria'])
 
-    # 1. Slider para rango de Hectáreas
-    min_ha = float(df["Area_Hectareas"].min())
-    max_ha = float(df["Area_Hectareas"].max())
-    rango_ha = st.sidebar.slider("Filtrar por Tamaño (Ha)", min_ha, max_ha, (min_ha, max_ha))
+    # --- NUEVAS COSAS INTERACTIVAS ---
+    # 1. Buscador de texto por ID
+    search_id = st.sidebar.text_input("🔍 Buscar por ID de Finca", "")
 
-    # 2. Radio para enfoque de cultivo
-    opciones_cultivo = ["Todos"] + list(df["Tipo_Cultivo"].unique())
-    enfoque = st.sidebar.radio("Enfoque principal:", opciones_cultivo)
+    # 2. Color Picker para la interfaz
+    accent_color = st.sidebar.color_picker("Color de acento", "#00D4FF")
 
-    # 3. Color Picker para personalizar las gráficas
-    color_tema = st.sidebar.color_picker("Color de gráficas", "#B5EAD7")
+    # 3. Slider de Rango de Producción
+    prod_min, prod_max = float(df["Produccion_Anual_Ton"].min()), float(df["Produccion_Anual_Ton"].max())
+    rango_prod = st.sidebar.slider("Producción (Ton)", prod_min, prod_max, (prod_min, prod_max))
 
-    # 4. Date Input para auditorías
-    fecha_min = df["Fecha_Ultima_Auditoria"].min().date()
-    fecha_max = df["Fecha_Ultima_Auditoria"].max().date()
-    fecha_sel = st.sidebar.date_input("Auditorías desde:", fecha_min)
+    # 4. Multi-selector de Departamentos
+    depts = st.sidebar.multiselect("Departamentos:", options=df["Departamento"].unique(), default=df["Departamento"].unique()[:3])
 
-    # --- LÓGICA DE FILTRADO DINÁMICO ---
-    df_f = df[(df["Area_Hectareas"] >= rango_ha[0]) & (df["Area_Hectareas"] <= rango_ha[1])]
-    df_f = df_f[df_f["Fecha_Ultima_Auditoria"].dt.date >= fecha_sel]
+    # 5. Radio de Nivel Tecnificación
+    tec_level = st.sidebar.radio("Filtrar por Tecnificación:", ["Todos", "Bajo", "Medio", "Alto", "Muy Alto"])
+
+    # 6. Date Input
+    auditoria_desde = st.sidebar.date_input("Auditorías desde:", df["Fecha_Ultima_Auditoria"].min())
+
+    # --- LÓGICA DE FILTRADO ---
+    mask = (df["Produccion_Anual_Ton"].between(*rango_prod)) & \
+           (df["Departamento"].isin(depts)) & \
+           (df["Fecha_Ultima_Auditoria"].dt.date >= auditoria_desde)
     
-    if enfoque != "Todos":
-        df_f = df_f[df_f["Tipo_Cultivo"] == enfoque]
+    if tec_level != "Todos":
+        mask &= (df["Nivel_Tecnificacion"] == tec_level)
+    
+    if search_id:
+        mask &= (df["ID_Finca"].str.contains(search_id, case=False))
 
-    # --- ESTRUCTURA DE 3 BLOQUES ---
+    df_f = df[mask]
+
+    # --- PESTAÑAS ---
     tab_cuant, tab_cual, tab_graf = st.tabs(["🔢 CUANTITATIVO", "📄 CUALITATIVO", "📊 GRÁFICO"])
 
     # BLOQUE 1: CUANTITATIVO
     with tab_cuant:
-        st.subheader("Indicadores de Rendimiento")
-        c1, c2, c3 = st.columns(3)
+        st.subheader("Métricas de Rendimiento")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Fincas", len(df_f))
+        c2.metric("Área Total", f"{df_f['Area_Hectareas'].sum():,.0f} Ha")
+        c3.metric("Producción", f"{df_f['Produccion_Anual_Ton'].sum():,.0f} Ton")
+        c4.metric("Precio Prom.", f"${df_f['Precio_Venta_Por_Ton_COP'].mean():,.0f}")
         
-        with c1:
-            st.metric("Total Hectáreas", f"{df_f['Area_Hectareas'].sum():,.1f} ha")
-        with c2:
-            st.metric("Producción Total", f"{df_f['Produccion_Anual_Ton'].sum():,.1f} Ton")
-        with c3:
-            st.metric("Precio Promedio", f"${df_f['Precio_Venta_Por_Ton_COP'].mean():,.0f}")
-
-        st.info(f"💡 Estás viendo datos entre {rango_ha[0]} y {rango_ha[1]} Hectáreas.")
-        st.write("### Desglose Estadístico")
-        st.dataframe(df_f.describe().T, use_container_width=True)
+        st.markdown("---")
+        st.write("### 📈 Análisis de Precios por Suelo")
+        # Gráfico rápido de barras interno
+        st.bar_chart(df_f.groupby("Tipo_Suelo")["Precio_Venta_Por_Ton_COP"].mean(), color=accent_color)
 
     # BLOQUE 2: CUALITATIVO
     with tab_cual:
-        st.subheader("Atributos y Gestión de Datos")
+        st.subheader("Detalles Técnicos")
         
-        col_left, col_right = st.columns([2, 1])
+        # Botón para descargar
+        csv_data = df_f.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Descargar Reporte CSV", csv_data, "agro_report.csv", "text/csv")
+
+        st.dataframe(df_f.style.highlight_max(axis=0, color="#2E4A3F"), use_container_width=True)
         
-        with col_left:
-            st.write("**Vista Previa de la Data Filtrada**")
-            st.dataframe(df_f, use_container_width=True)
-            
-            # BOTÓN DE DESCARGA
-            csv = df_f.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Descargar datos filtrados (CSV)",
-                data=csv,
-                file_name='agro_data_filtrada.csv',
-                mime='text/csv',
-            )
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            st.write("**Resumen de Tecnificación**")
+            st.write(df_f["Nivel_Tecnificacion"].value_counts())
+        with col_c2:
+            st.write("**Sistema de Riego**")
+            st.write(df_f["Sistema_Riego_Tecnificado"].value_counts())
 
-        with col_right:
-            st.write("**Nivel de Tecnificación**")
-            st.bar_chart(df_f["Nivel_Tecnificacion"].value_counts(), color=color_tema)
-
-    # BLOQUE 3: GRÁFICO
+    # BLOQUE 3: GRÁFICO (Cosas bacanas)
     with tab_graf:
-        st.subheader("Visualizaciones Dinámicas")
+        st.subheader("Visualización Avanzada")
         
-        # Gráfico de barras usando el Color Picker
-        fig_bar = px.bar(
-            df_f.groupby("Departamento")["Produccion_Anual_Ton"].sum().reset_index(),
-            x="Departamento", y="Produccion_Anual_Ton",
-            title="Producción por Departamento",
-            color_discrete_sequence=[color_tema],
-            template="plotly_white"
+        # 1. Sunburst Chart: Jerarquía Dept -> Cultivo
+        st.write("**Jerarquía: Departamento > Cultivo (Producción)**")
+        fig_sun = px.sunburst(
+            df_f, path=['Departamento', 'Tipo_Cultivo'], values='Produccion_Anual_Ton',
+            color_discrete_sequence=px.colors.qualitative.Pastel,
+            template="plotly_dark"
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_sun, use_container_width=True)
 
-        # Scatter plot interactivo
-        fig_scatter = px.scatter(
-            df_f, x="Area_Hectareas", y="Produccion_Anual_Ton",
-            color="Tipo_Suelo", size="Precio_Venta_Por_Ton_COP",
-            hover_name="ID_Finca",
-            title="Relación Área vs Producción (Color por Suelo)",
-            color_discrete_sequence=px.colors.qualitative.Pastel
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
+        g1, g2 = st.columns(2)
+        with g1:
+            # 2. Box Plot de Precios
+            fig_box = px.box(
+                df_f, x="Nivel_Tecnificacion", y="Precio_Venta_Por_Ton_COP",
+                title="Distribución de Precios por Tecnificación",
+                color_discrete_sequence=[accent_color],
+                template="plotly_dark"
+            )
+            st.plotly_chart(fig_box, use_container_width=True)
+            
+        with g2:
+            # 3. Scatter Plot interactivo
+            fig_scatter = px.scatter(
+                df_f, x="Area_Hectareas", y="Produccion_Anual_Ton",
+                size="Precio_Venta_Por_Ton_COP", color="Tipo_Cultivo",
+                title="Área vs Producción por Cultivo",
+                template="plotly_dark"
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
 
 else:
-    # PANTALLA DE BIENVENIDA
-    st.info("👋 ¡Hola! Para empezar, arrastra el archivo CSV al panel de la izquierda.")
+    # Pantalla de bienvenida con la imagen solicitada
+    st.info("👋 Sube tu CSV para activar el modo oscuro.")
     st.image(
         "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=1000", 
-        caption="Análisis de agro-datos avanzado"
+        caption="Análisis de agro-datos"
     )
     
+    # Previsualización de interactividad
+    st.write("### Herramientas que se activarán:")
+    c1, c2, c3 = st.columns(3)
+    c1.write("🎨 **Color Picker** para acentos.")
+    c2.write("📅 **Filtro de Calendario**.")
+    c3.write("🔍 **Buscador de IDs**.")
