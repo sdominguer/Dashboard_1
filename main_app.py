@@ -24,61 +24,73 @@ EARTH_PALETTE = ["#556B2F", "#8B4513", "#CD853F", "#DAA520", "#BC8F8F", "#2E8B57
 # --- CSS LIMPIO (ESTILO AGRO-CLEAN) ---
 st.markdown("""
     <style>
-    /* Ajustes generales */
-    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+    /* Ajustes generales: más espacio y limpieza */
+    .block-container { padding-top: 3rem; padding-bottom: 3rem; max-width: 95%; }
     
-    /* Títulos y fuentes */
-    h1, h2, h3 { font-family: 'Segoe UI', sans-serif; color: #2E3B28; }
+    /* Fuentes: Gris carbón suave en lugar de negro puro */
+    h1, h2, h3 { 
+        font-family: 'Inter', 'Segoe UI', sans-serif; 
+        color: #454B40; 
+        font-weight: 500;
+        letter-spacing: -0.5px;
+    }
     
-    /* Tarjetas de Métricas (KPIs) */
+    /* Tarjetas de Métricas: Estilo 'Float' sin bordes agresivos */
     div[data-testid="metric-container"] {
-        background-color: #F9FBF9; 
-        border: 1px solid #E0E4D9;
-        border-left: 5px solid #556B2F; 
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: #FFFFFF;
+        border: 1px solid #F0F2F0;
+        border-bottom: 2px solid #E0E4D9;
+        padding: 20px;
+        border-radius: 12px;
     }
     
-    /* --- TABS ESTILO CLEAN --- */
-    /* Quitamos el fondo verde del contenedor de tabs */
+    /* --- TABS SUTILES Y ELEGANTES --- */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 15px;
-        background-color: transparent !important; /* Totalmente transparente */
-        padding: 8px 0px;
+        gap: 30px; /* Más espacio entre palabras */
+        background-color: transparent;
+        border-bottom: 1px solid #E6EAE6; /* Línea divisoria muy fina */
+        margin-bottom: 20px;
     }
 
-    /* Estilo de la letra: Oscura para que se vea en fondo blanco */
-    .stTabs [data-baseweb="tab"] p {
-        color: #556B2F !important; /* Verde oscuro para las letras */
-        font-size: 22px !important; 
-        font-weight: 700 !important;
-        transition: all 0.3s ease;
-    }
-
-    /* Efecto cuando hundo/selecciono el tab: Fondo blanco resaltado */
-    .stTabs [aria-selected="true"] {
-        background-color: #FFFFFF !important; 
-        border-radius: 10px !important;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.1) !important; /* Sombrita para que resalte */
-        border: 1px solid #E0E4D9 !important;
-    }
-
-    /* Quitar la línea roja/barrita que pone Streamlit por defecto */
-    .stTabs [data-baseweb="tab-highlight"] {
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
         background-color: transparent !important;
+        border: none !important;
+    }
+
+    /* Texto de los Tabs: Gris suave, tamaño equilibrado */
+    .stTabs [data-baseweb="tab"] p {
+        color: #9BA398 !important; /* Gris ceniza suave */
+        font-size: 19px !important;
+        font-weight: 400 !important;
+        transition: all 0.4s ease;
+    }
+
+    /* Tab Seleccionado: Solo texto oscuro y una línea minimalista */
+    .stTabs [aria-selected="true"] p {
+        color: #556B2F !important; /* El verde solo aparece aquí */
+        font-weight: 600 !important;
+    }
+
+    /* La barrita indicadora de Streamlit hecha más fina */
+    .stTabs [data-baseweb="tab-highlight"] {
+        background-color: #556B2F !important;
+        height: 2px !important;
     }
     
-    /* Botones */
+    /* Botones: Estilo minimalista */
     .stButton > button {
-        background-color: #556B2F;
-        color: white;
-        border-radius: 5px;
-        border: none;
+        background-color: #F9FBF9;
+        color: #556B2F;
+        border: 1px solid #E0E4D9;
+        border-radius: 8px;
+        padding: 0.5rem 2rem;
+        transition: 0.3s;
     }
     .stButton > button:hover {
-        background-color: #3E4F22;
+        background-color: #556B2F;
         color: white;
+        border-color: #556B2F;
     }
     </style>
 """, unsafe_allow_html=True)
