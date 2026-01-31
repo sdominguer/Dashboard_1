@@ -40,27 +40,33 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* --- TABS GRANDES Y BLANCOS --- */
-    /* Contenedor de la lista de tabs con fondo verde tierra */
+    /* --- TABS ESTILO CLEAN --- */
+    /* Quitamos el fondo verde del contenedor de tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 15px;
-        background-color: #556B2F; /* Fondo verde para que resalte la letra blanca */
-        padding: 8px 15px;
-        border-radius: 12px 12px 0 0;
+        background-color: transparent !important; /* Totalmente transparente */
+        padding: 8px 0px;
     }
 
-    /* Estilo de la letra en los tabs (Normal y Seleccionado) */
+    /* Estilo de la letra: Oscura para que se vea en fondo blanco */
     .stTabs [data-baseweb="tab"] p {
-        color: white !important;
-        font-size: 22px !important; /* Letra más grande */
+        color: #556B2F !important; /* Verde oscuro para las letras */
+        font-size: 22px !important; 
         font-weight: 700 !important;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
     }
 
-    /* Efecto cuando el tab está seleccionado */
+    /* Efecto cuando hundo/selecciono el tab: Fondo blanco resaltado */
     .stTabs [aria-selected="true"] {
-        background-color: rgba(255, 255, 255, 0.2) !important; /* Brillo sutil */
-        border-radius: 8px 8px 0 0 !important;
+        background-color: #FFFFFF !important; 
+        border-radius: 10px !important;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.1) !important; /* Sombrita para que resalte */
+        border: 1px solid #E0E4D9 !important;
+    }
+
+    /* Quitar la línea roja/barrita que pone Streamlit por defecto */
+    .stTabs [data-baseweb="tab-highlight"] {
+        background-color: transparent !important;
     }
     
     /* Botones */
